@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'com.diffplug.spotless' version '6.3.0'
+}
+
+group = 'java.rezero'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+//    implementation 'org.apache.commons:commons-pool2:2.8.0'
+//    implementation 'org.apache.commons:commons-lang3:3.8.1'
+
+    // https://projectlombok.org
+//    compileOnly 'org.projectlombok:lombok:1.18.20'
+//    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+}
+
+//test {
+//    useJUnitPlatform()
+//}
