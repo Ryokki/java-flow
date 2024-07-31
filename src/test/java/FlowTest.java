@@ -1,14 +1,16 @@
-package rezero;
-
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import rezero.Utils;
 
-public class Main {
-  public static void main(String[] args) {
+public class FlowTest {
+  @Test
+  public void testCount() {
     long cnt =
         Utils.flow(List.of(1, 2, 4, 3, 5, 6))
             .filter(i -> i % 2 == 0)
             .map(i -> String.valueOf(i * 10))
             .count();
-    System.out.println("count = " + cnt);
+    Assertions.assertEquals(3, cnt);
   }
 }
