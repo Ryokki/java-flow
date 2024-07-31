@@ -11,9 +11,9 @@ import java.util.function.Supplier;
  *     E_OUT = String.
  */
 public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
+  private final Supplier<? extends Spliterator<?>> sourceSupplier;
   private final AbstractPipeline previousStage;
   private AbstractPipeline nextStage;
-  private Supplier<? extends Spliterator<?>> sourceSupplier;
 
   abstract Sink<E_IN> wrapSink(Sink<E_OUT> downSink);
 
@@ -27,13 +27,14 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   AbstractPipeline(AbstractPipeline upstream) {
     upstream.nextStage = this;
     this.previousStage = upstream;
+    this.sourceSupplier = upstream.sourceSupplier;
   }
 
   // here functions
 
   @Override
   public Flow<E_OUT> filter(Predicate<? super E_OUT> predicate) {
-    return new MidPipeline<E_OUT, E_OUT>(previousStage) {
+    return new MidPipeline<E_OUT, E_OUT>(this) {
       @Override
       Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
         return new Sink<>() {
@@ -57,7 +58,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   @Override
   // 只有参数中可以?吗
   public <R> Flow<R> map(Function<? super E_OUT, ? extends R> mapper) {
-    return new MidPipeline<E_OUT, R>(previousStage) {
+    return new MidPipeline<E_OUT, R>(this) {
       @Override
       Sink<E_OUT> wrapSink(Sink<R> downSink) {
         return new Sink<E_OUT>() {
@@ -81,7 +82,51 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   }
 
   @Override
-  public int count() {
-    return 0;
+  public long count() {
+    // mapStream.count()
+    return evaluate(
+        new TerminateSink<E_OUT, Long>() {
+          private long cnt;
+
+          @Override
+          public void begin(long size) {}
+
+          @Override
+          public void accept(E_OUT value) {
+            cnt++;
+          }
+
+          @Override
+          public void end() {}
+
+          @Override
+          public Long getResult() {
+            return cnt;
+          }
+        });
+  }
+
+  private <R> R evaluate(TerminateSink<E_OUT, R> terminateSink) {
+    Sink headSink = generateSinkChain(terminateSink);
+
+    Spliterator spliterator = sourceSupplier.get();
+    headSink.begin(spliterator.estimateSize());
+    spliterator.forEachRemaining(element -> headSink.accept(element));
+    headSink.end();
+
+    return terminateSink.getResult();
+  }
+
+  private Sink<?> generateSinkChain(TerminateSink terminateSink) {
+    // 组装成一条Sink链条: headSink对象中需要存filterSink, filterSink存mapSink,
+    // mapSink存countSink, countSink跑完结束
+    // 所以就在mapSink的wrap传入countSink，filterSink传入mapSink，headSink传入filterSink
+    AbstractPipeline currentPipeline = this;
+    Sink<?> downSink = terminateSink;
+    while (currentPipeline != null) {
+      downSink = currentPipeline.wrapSink(downSink);
+      currentPipeline = currentPipeline.previousStage;
+    }
+    return downSink;
   }
 }
