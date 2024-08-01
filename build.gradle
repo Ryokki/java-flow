@@ -42,3 +42,26 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+test {
+    testLogging {
+        // 禁用默认的日志
+        events = []
+        exceptionFormat = 'full'
+    }
+
+    afterSuite { desc, result ->
+        if (!desc.parent) { // 只在测试套件完成时输出
+            println "\n----- Test Results -----"
+            println "Total tests run: ${result.testCount}"
+            println "Successful: ${result.successfulTestCount}"
+            println "Failed: ${result.failedTestCount}"
+            println "Skipped: ${result.skippedTestCount}"
+        }
+    }
+
+    afterTest { desc, result ->
+        def testName = desc.name ?: desc.className
+        println "${testName} ${result.resultType == TestResult.ResultType.SUCCESS ? 'PASSED' : 'FAILED'}"
+    }
+}
