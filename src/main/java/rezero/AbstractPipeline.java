@@ -34,7 +34,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
   @Override
   public Flow<E_OUT> filter(Predicate<? super E_OUT> predicate) {
-    return new MidPipeline<E_OUT, E_OUT>(this) {
+    return new MidPipeline<>(this) {
       @Override
       Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
         return new Sink<>() {
@@ -62,10 +62,10 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   @Override
   // 只有参数中可以?吗
   public <R> Flow<R> map(Function<? super E_OUT, ? extends R> mapper) {
-    return new MidPipeline<E_OUT, R>(this) {
+    return new MidPipeline<>(this) {
       @Override
       Sink<E_OUT> wrapSink(Sink<R> downSink) {
-        return new Sink<E_OUT>() {
+        return new Sink<>() {
           @Override
           public void begin(long size) {
             downSink.begin(size);
@@ -87,7 +87,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
   @Override
   public Flow<E_OUT> sort(Comparator<? super E_OUT> comparator) {
-    return new MidPipeline<E_OUT, E_OUT>(this) {
+    return new MidPipeline<>(this) {
       @Override
       Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
         return new Sink<>() {
@@ -95,9 +95,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
           @Override
           public void begin(long size) {
-            list = size != -1
-              ? new ArrayList((int) size)
-                : new ArrayList<>();
+            list = size != -1 ? new ArrayList<>((int) size) : new ArrayList<>();
           }
 
           @Override
@@ -125,8 +123,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
           private long cnt;
 
           @Override
-          public void begin(long size) {
-          }
+          public void begin(long size) {}
 
           @Override
           public void accept(E_OUT value) {
@@ -134,8 +131,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
           }
 
           @Override
-          public void end() {
-          }
+          public void end() {}
 
           @Override
           public Long getResult() {
@@ -144,6 +140,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
         });
   }
 
+  @SuppressWarnings("unchecked")
   private <R> R evaluate(TerminateSink<E_OUT, R> terminateSink) {
     Sink headSink = generateSinkChain(terminateSink);
 
@@ -155,6 +152,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
     return terminateSink.getResult();
   }
 
+  @SuppressWarnings("unchecked")
   private Sink<?> generateSinkChain(TerminateSink terminateSink) {
     // 组装成一条Sink链条: headSink对象中需要存filterSink, filterSink存mapSink,
     // mapSink存countSink, countSink跑完结束

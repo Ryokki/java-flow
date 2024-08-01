@@ -1,6 +1,5 @@
 package rezero;
 
-import java.util.Comparator;
 import java.util.Spliterator;
 import java.util.function.Supplier;
 

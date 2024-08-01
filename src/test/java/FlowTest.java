@@ -1,7 +1,5 @@
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import rezero.Utils;
