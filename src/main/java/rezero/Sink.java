@@ -6,4 +6,8 @@ public interface Sink<T> {
   void accept(T value);
 
   void end();
+
+  default boolean cancellationRequested() {
+    return false;
+  }
 }
