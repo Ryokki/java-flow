@@ -1,5 +1,8 @@
 package rezero;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -12,7 +15,7 @@ import java.util.function.Supplier;
  */
 public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   private final Supplier<? extends Spliterator<?>> sourceSupplier;
-  private final AbstractPipeline previousStage;
+  private final AbstractPipeline<?, E_IN> previousStage;
 
   abstract Sink<E_IN> wrapSink(Sink<E_OUT> downSink);
 
@@ -22,7 +25,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
     this.sourceSupplier = sourceSupplier;
   }
 
-  AbstractPipeline(AbstractPipeline upstream) {
+  AbstractPipeline(AbstractPipeline<?, E_IN> upstream) {
     this.previousStage = upstream;
     this.sourceSupplier = upstream.sourceSupplier;
   }
@@ -36,7 +39,9 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
       Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
         return new Sink<>() {
           @Override
-          public void begin(long size) {}
+          public void begin(long size) {
+            downSink.begin(size);
+          }
 
           @Override
           public void accept(E_OUT value) {
@@ -46,7 +51,9 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
           }
 
           @Override
-          public void end() {}
+          public void end() {
+            downSink.end();
+          }
         };
       }
     };
@@ -71,6 +78,38 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
           @Override
           public void end() {
+            downSink.end();
+          }
+        };
+      }
+    };
+  }
+
+  @Override
+  public Flow<E_OUT> sort(Comparator<? super E_OUT> comparator) {
+    return new MidPipeline<E_OUT, E_OUT>(this) {
+      @Override
+      Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
+        return new Sink<>() {
+          private List<E_OUT> list;
+
+          @Override
+          public void begin(long size) {
+            list = size != -1
+              ? new ArrayList((int) size)
+                : new ArrayList<>();
+          }
+
+          @Override
+          public void accept(E_OUT value) {
+            list.add(value);
+          }
+
+          @Override
+          public void end() {
+            list.sort(comparator);
+            downSink.begin(list.size());
+            list.forEach(downSink::accept);
             downSink.end();
           }
         };
