@@ -13,19 +13,16 @@ import java.util.function.Supplier;
 public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   private final Supplier<? extends Spliterator<?>> sourceSupplier;
   private final AbstractPipeline previousStage;
-  private AbstractPipeline nextStage;
 
   abstract Sink<E_IN> wrapSink(Sink<E_OUT> downSink);
 
   // constructors
   AbstractPipeline(Supplier<? extends Spliterator<?>> sourceSupplier) {
     this.previousStage = null;
-    this.nextStage = null;
     this.sourceSupplier = sourceSupplier;
   }
 
   AbstractPipeline(AbstractPipeline upstream) {
-    upstream.nextStage = this;
     this.previousStage = upstream;
     this.sourceSupplier = upstream.sourceSupplier;
   }
@@ -85,11 +82,12 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   public long count() {
     // mapStream.count()
     return evaluate(
-        new TerminateSink<E_OUT, Long>() {
+        new TerminateSink<>() {
           private long cnt;
 
           @Override
-          public void begin(long size) {}
+          public void begin(long size) {
+          }
 
           @Override
           public void accept(E_OUT value) {
@@ -97,7 +95,8 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
           }
 
           @Override
-          public void end() {}
+          public void end() {
+          }
 
           @Override
           public Long getResult() {
@@ -111,7 +110,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
     Spliterator spliterator = sourceSupplier.get();
     headSink.begin(spliterator.estimateSize());
-    spliterator.forEachRemaining(element -> headSink.accept(element));
+    spliterator.forEachRemaining(headSink::accept);
     headSink.end();
 
     return terminateSink.getResult();

@@ -45,23 +45,21 @@ test {
 
 test {
     testLogging {
-        // 禁用默认的日志
         events = []
         exceptionFormat = 'full'
     }
 
-    afterSuite { desc, result ->
-        if (!desc.parent) { // 只在测试套件完成时输出
-            println "\n----- Test Results -----"
-            println "Total tests run: ${result.testCount}"
-            println "Successful: ${result.successfulTestCount}"
-            println "Failed: ${result.failedTestCount}"
-            println "Skipped: ${result.skippedTestCount}"
-        }
-    }
+    def GREEN = "\033[32m"
+    def RED = "\033[31m"
+    def YELLOW = "\033[33m"
+    def RESET = "\033[0m"
 
     afterTest { desc, result ->
-        def testName = desc.name ?: desc.className
-        println "${testName} ${result.resultType == TestResult.ResultType.SUCCESS ? 'PASSED' : 'FAILED'}"
+        def testName = desc.name // 只使用测试方法名
+        if (result.resultType == TestResult.ResultType.SUCCESS) {
+            println "${YELLOW}${testName}${RESET} ${GREEN}passed test${RESET}"
+        } else {
+            println "${YELLOW}${testName}${RESET} ${RED}failed test${RESET}"
+        }
     }
 }

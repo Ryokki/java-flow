@@ -12,11 +12,9 @@ public class FlowTest {
             .map(i -> String.valueOf(i * 10))
             .count();
     Assertions.assertEquals(3, cnt);
-    System.out.println("🎉🎉🎉🎉🎉 passed testCount");
   }
 
   @Test
-  public void test2() {
-    System.out.println("🎉🎉🎉🎉🎉 test2");
+  public void testCircuit() {
   }
 }
