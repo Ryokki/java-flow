@@ -28,4 +28,14 @@ public class FlowTest {
     Assertions.assertEquals(3, cnt);
     // need toList function to assert
   }
+
+  @Test
+  public void testFindAny() {
+    int result =
+        Utils.flow(List.of(3, 2, 5, 6, 4, 1))
+            .filter(number -> number.intValue() % 2 == 0)
+            .findAny()
+            .get();
+    Assertions.assertEquals(2, result);
+  }
 }

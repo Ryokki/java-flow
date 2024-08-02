@@ -3,6 +3,7 @@ package rezero;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Spliterator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -16,6 +17,7 @@ import java.util.function.Supplier;
 public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   private final Supplier<? extends Spliterator<?>> sourceSupplier;
   private final AbstractPipeline<?, E_IN> previousStage;
+  private int flag = 0;
 
   abstract Sink<E_IN> wrapSink(Sink<E_OUT> downSink);
 
@@ -110,13 +112,44 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
         });
   }
 
+  @Override
+  public Optional<E_OUT> findAny() {
+    setFlags(FlowFlag.FIND_ONE, FlowFlag.CANCELLABLE);
+    return evaluate(
+        new TerminateSink<>() {
+          private E_OUT result;
+          boolean accepted = false;
+
+          @Override
+          public void accept(E_OUT value) {
+            result = value;
+            accepted = true;
+          }
+
+          @Override
+          public boolean cancellationRequested() {
+            return accepted;
+          }
+
+          @Override
+          public Optional<E_OUT> getResult() {
+            return Optional.ofNullable(result);
+          }
+        });
+  }
+
   @SuppressWarnings("unchecked")
   private <R> R evaluate(TerminateSink<E_OUT, R> terminateSink) {
     Sink headSink = generateSinkChain(terminateSink);
 
     Spliterator spliterator = sourceSupplier.get();
     headSink.begin(spliterator.estimateSize());
-    spliterator.forEachRemaining(headSink::accept);
+
+    if (isFlagSet(FlowFlag.CANCELLABLE)) {
+      new CancellableSpliterator<>(spliterator, headSink).forEachRemaining(headSink::accept);
+    } else {
+      spliterator.forEachRemaining(headSink::accept);
+    }
     headSink.end();
 
     return terminateSink.getResult();
@@ -134,5 +167,25 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
       currentPipeline = currentPipeline.previousStage;
     }
     return downSink;
+  }
+
+  private AbstractPipeline getHead() {
+    AbstractPipeline current = this;
+    while (current.previousStage != null) {
+      current = current.previousStage;
+    }
+    return current;
+  }
+
+  // 一个stream是由一堆pipeline组成的，得找个地方存Flag, 那就找head吧! 所以这里加个head字段 TODO
+  private void setFlags(FlowFlag... flags) {
+    for (FlowFlag flowFlag : flags) {
+      getHead().flag |= 1 << flowFlag.getMask();
+    }
+  }
+
+  private boolean isFlagSet(FlowFlag flowFlag) {
+    int i = 1 & (1 << 2);
+    return (getHead().flag & (1 << flowFlag.getMask())) != 0;
   }
 }
