@@ -1,3 +1,4 @@
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Assertions;
@@ -31,11 +32,12 @@ public class FlowTest {
 
   @Test
   public void testFindAny() {
-    int result =
-        Utils.flow(List.of(3, 2, 5, 6, 4, 1))
+    int any =
+        Utils.flow(List.of(1, 4, 2, 3, 5, 6))
             .filter(number -> number.intValue() % 2 == 0)
+            .sort(Comparator.comparingInt(a -> a))
             .findAny()
             .get();
-    Assertions.assertEquals(2, result);
+    Assertions.assertEquals(4, any);
   }
 }

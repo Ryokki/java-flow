@@ -18,6 +18,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
   private final Supplier<? extends Spliterator<?>> sourceSupplier;
   private final AbstractPipeline<?, E_IN> previousStage;
   private int flag = 0;
+  protected Predicate<Integer> ignoredPredicate = flag -> false;
 
   abstract Sink<E_IN> wrapSink(Sink<E_OUT> downSink);
 
@@ -66,32 +67,35 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
   @Override
   public Flow<E_OUT> sort(Comparator<? super E_OUT> comparator) {
-    return new MidPipeline<>(this) {
-      @Override
-      Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
-        return new ChainedSink<>(downSink) {
-          private List<E_OUT> list;
-
+    MidPipeline<E_OUT, E_OUT> midPipeline =
+        new MidPipeline<>(this) {
           @Override
-          public void begin(long size) {
-            list = size != -1 ? new ArrayList<>((int) size) : new ArrayList<>();
-          }
+          Sink<E_OUT> wrapSink(Sink<E_OUT> downSink) {
+            return new ChainedSink<>(downSink) {
+              private List<E_OUT> list;
 
-          @Override
-          public void accept(E_OUT value) {
-            list.add(value);
-          }
+              @Override
+              public void begin(long size) {
+                list = size != -1 ? new ArrayList<>((int) size) : new ArrayList<>();
+              }
 
-          @Override
-          public void end() {
-            list.sort(comparator);
-            downSink.begin(list.size());
-            list.forEach(downSink::accept);
-            downSink.end();
+              @Override
+              public void accept(E_OUT value) {
+                list.add(value);
+              }
+
+              @Override
+              public void end() {
+                list.sort(comparator);
+                downSink.begin(list.size());
+                list.forEach(downSink::accept);
+                downSink.end();
+              }
+            };
           }
         };
-      }
-    };
+    midPipeline.ignoredPredicate = flag -> (flag | FlowFlag.FIND_ANY.getMask()) != 0;
+    return midPipeline;
   }
 
   @Override
@@ -114,7 +118,7 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
 
   @Override
   public Optional<E_OUT> findAny() {
-    setFlags(FlowFlag.FIND_ONE, FlowFlag.CANCELLABLE);
+    setFlags(FlowFlag.FIND_ANY, FlowFlag.CANCELLABLE);
     return evaluate(
         new TerminateSink<>() {
           private E_OUT result;
@@ -162,11 +166,16 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
     // 所以就在mapSink的wrap传入countSink，filterSink传入mapSink，headSink传入filterSink
     AbstractPipeline currentPipeline = this;
     Sink<?> downSink = terminateSink;
-    while (currentPipeline != null) {
-      downSink = currentPipeline.wrapSink(downSink);
-      currentPipeline = currentPipeline.previousStage;
+    for (; currentPipeline != null; currentPipeline = currentPipeline.previousStage) {
+      if (!currentPipeline.toBeIgnored()) {
+        downSink = currentPipeline.wrapSink(downSink);
+      }
     }
     return downSink;
+  }
+
+  private boolean toBeIgnored() {
+    return ignoredPredicate.test(getHead().flag);
   }
 
   private AbstractPipeline getHead() {

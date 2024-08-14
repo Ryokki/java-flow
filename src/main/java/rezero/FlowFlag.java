@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 public enum FlowFlag {
   CANCELLABLE(0),
-  FIND_ONE(1),
+  FIND_ANY(1),
   ;
 
   private final int mask;
