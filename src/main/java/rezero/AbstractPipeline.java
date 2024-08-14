@@ -1,10 +1,12 @@
 package rezero;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Spliterator;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -138,6 +140,30 @@ public abstract class AbstractPipeline<E_IN, E_OUT> implements Flow<E_OUT> {
           @Override
           public Optional<E_OUT> getResult() {
             return Optional.ofNullable(result);
+          }
+        });
+  }
+
+  @Override
+  public <C extends Collection<E_OUT>> C collect(
+      Supplier<C> supplier, BiConsumer<C, E_OUT> consumer) {
+    return evaluate(
+        new TerminateSink<>() {
+          C collection;
+
+          @Override
+          public C getResult() {
+            return collection;
+          }
+
+          @Override
+          public void begin(long size) {
+            collection = supplier.get();
+          }
+
+          @Override
+          public void accept(E_OUT value) {
+            collection.add(value);
           }
         });
   }

@@ -1,9 +1,12 @@
 package rezero;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public interface Flow<T> {
   /**
@@ -27,4 +30,6 @@ public interface Flow<T> {
 
   /** 除非流具有遇到顺序，在这种情况下findFirst()返回第一个元素，而findAny()将返回任何元素 (跳过排序?) */
   Optional<T> findAny();
+
+  <C extends Collection<T>> C collect(Supplier<C> supplier, BiConsumer<C, T> consumer);
 }

@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
@@ -39,5 +40,13 @@ public class FlowTest {
             .findAny()
             .get();
     Assertions.assertEquals(4, any);
+  }
+
+  @Test
+  public void testCollectToList() {
+    ArrayList<Integer> result =
+        Utils.flow(List.of(1, 4, 2, 3, 5, 6))
+            .collect(ArrayList::new, (list, element) -> list.add(element));
+    Assertions.assertEquals(6, result.size());
   }
 }

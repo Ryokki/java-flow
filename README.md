@@ -6,7 +6,7 @@
 - [x] 中间操作 filter & map
 - [x] 终结逻辑 count
 - [x] sort 
-- [ ] 支持短路逻辑. findAny、findFirst
+- [x] 支持短路逻辑. findAny、findFirst
 - [ ] collect、reduce
 
 ![image-20240801140650293](https://kkbabe-picgo.oss-cn-hangzhou.aliyuncs.com/img/image-20240801140650293.png)
