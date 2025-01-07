@@ -9,5 +9,6 @@
 - [x] 支持短路逻辑. findAny、findFirst
 - [ ] collect、reduce
 - [ ] 看看Comparator逻辑, 实现sort
+- [ ] 看看别人的实现思路 https://zhuanlan.zhihu.com/p/16309803540?utm_psn=1859953612903542786
 
 ![image-20240801140650293](https://kkbabe-picgo.oss-cn-hangzhou.aliyuncs.com/img/image-20240801140650293.png)
